@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-making-sim"
+version = "0.1.0"
+description = "Full event-driven market-making simulation: queue-aware fills, inventory skew, latency sensitivity, maker-vs-taker profitability"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "yfinance>=0.2",
+    "orderbook-priority-sim @ git+https://github.com/Patience-Fuglo/orderbook-priority-sim.git",
+    "avellaneda-stoikov-calculator @ git+https://github.com/Patience-Fuglo/avellaneda-stoikov-calculator.git",
+    "alpha-validation-toolkit @ git+https://github.com/Patience-Fuglo/alpha-validation-toolkit.git",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
