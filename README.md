@@ -14,7 +14,7 @@ engineering, and maker-vs-taker profitability.
 | Inventory skew | done |
 | Latency-sensitivity study | done |
 | Microstructure feature engineering | done |
-| Maker-vs-taker profitability | not started |
+| Maker-vs-taker profitability | done |
 
 ## Queue-aware fill modeling
 
@@ -181,4 +181,51 @@ Run the real-data demo:
 
 ```bash
 python scripts/demo_microstructure.py
+```
+
+## Maker-vs-taker profitability
+
+`src/market_making_sim/profitability.py`
+
+Ties every prior module in this repo into one real, end-to-end run: the
+reservation-price model driving quotes, real fills detected from real
+price action, inventory evolving over the real session — into one real
+P&L number. A maker's profit comes from the spread, captured repeatedly;
+the real risk is being left holding unsold inventory, marked to the real
+final price.
+
+```python
+from market_making_sim import compute_maker_pnl, simulate_inventory_trajectory, taker_cost_for_same_fills
+
+trajectory = simulate_inventory_trajectory(...)
+maker = compute_maker_pnl(trajectory, fill_size=100)
+taker = taker_cost_for_same_fills(trajectory, fill_size=100)
+```
+
+**A real bug caught before it reached the committed code:** the first
+draft of `compute_maker_pnl` summed fill *prices* without multiplying by
+trade size — correct only for a 1-share fill. Fixed before any test was
+written against it. **A second, conceptual bug caught in the demo
+script:** an early version subtracted `taker_cost` from `realized_cash`
+to report a single "edge" number. Real result showed this was comparing
+two different things — `realized_cash` mixes true spread capture with
+real directional price drift (fills happen at very different absolute
+price levels as the real session moves), while `taker_cost` is a clean,
+isolated friction-only estimate (half the spread per trade, the real
+mirror image of what a maker captures on a matched round trip). The
+subtraction was removed; both numbers are reported honestly side by
+side instead.
+
+**Real result:** one real TSLA session, 33 bid fills, 36 ask fills,
++$114,463 realized cash from spread capture, a real -$109,269
+mark-to-market loss on the -300 shares left unsold at session end,
+netting to a real **+$5,194** total P&L. A taker doing the same 69 real
+trades would have paid a real $3,971 in pure friction cost. A single
+real session's P&L is not proof this strategy is profitable in general
+— same honest caveat as every other single-session result in this repo.
+
+Run the real-data demo:
+
+```bash
+python scripts/demo_profitability.py
 ```
