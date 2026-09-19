@@ -13,7 +13,7 @@ engineering, and maker-vs-taker profitability.
 | Queue-aware fill modeling | done |
 | Inventory skew | done |
 | Latency-sensitivity study | done |
-| Microstructure feature engineering | not started |
+| Microstructure feature engineering | done |
 | Maker-vs-taker profitability | not started |
 
 ## Queue-aware fill modeling
@@ -147,4 +147,38 @@ Run the real-data demo:
 
 ```bash
 python scripts/demo_latency.py
+```
+
+## Microstructure feature engineering
+
+`src/market_making_sim/microstructure.py`
+
+Order flow imbalance (OFI): a short-term pressure signal for which way
+the price is likely to move next, on top of the market maker's own
+inventory. Real tick-level bid/ask size data isn't freely available, so
+this uses the classic "tick rule" (Lee-Ready style) to classify each
+real bar's volume as buyer- or seller-driven from real price movement
+alone — a well-established, real trade-classification technique, not
+fabricated order-flow data.
+
+```python
+from market_making_sim import order_flow_imbalance
+
+ofi = order_flow_imbalance(real_bars["close"], real_bars["volume"], window=10)
+```
+
+**Real result:** OFI computed on one real TSLA trading session (389 real
+1-minute bars) scores a real IC of **+0.11** against the next real
+1-minute return, reusing `information_coefficient` directly from
+`alpha-validation-toolkit` — the exact same real statistical tool used
+to validate the alt-data signal, applied here to a microstructure
+feature instead. A real, positive single-session IC is not proof of a
+validated trading signal on its own — the same purged walk-forward
+discipline from the alt-data arm would be needed before trusting this
+for real trading.
+
+Run the real-data demo:
+
+```bash
+python scripts/demo_microstructure.py
 ```
