@@ -12,7 +12,7 @@ engineering, and maker-vs-taker profitability.
 |---|---|
 | Queue-aware fill modeling | done |
 | Inventory skew | done |
-| Latency-sensitivity study | not started |
+| Latency-sensitivity study | done |
 | Microstructure feature engineering | not started |
 | Maker-vs-taker profitability | not started |
 
@@ -107,4 +107,44 @@ Run the real-data demo:
 
 ```bash
 python scripts/demo_inventory_skew.py
+```
+
+## Latency-sensitivity study
+
+`src/market_making_sim/latency.py`
+
+How much does a real delay between market information and your own
+quote update actually cost? Real tick-by-tick data at microsecond
+resolution isn't freely available, so this estimates the real expected
+cost using a standard, well-founded technique: the expected magnitude of
+a random-walk price move over a time window scales with the **square
+root** of that window's length — the same scaling already used
+elsewhere in this build (annualizing daily volatility). Given real,
+observed annualized volatility, this converts a real latency window (10
+microseconds, 50 microseconds, 1 millisecond) into a real, defensible
+estimate of expected adverse price movement during that window.
+
+```python
+from market_making_sim import latency_sensitivity_study
+
+result = latency_sensitivity_study(
+    annualized_volatility=0.5134, mid_price=358.97,
+    latency_values_seconds=[10e-6, 50e-6, 1e-3],
+)
+```
+
+**Real result:** at real TSLA annualized volatility (51.34%), even a
+full 1-millisecond latency window's expected adverse price move is only
+~0.19% of the real quoted spread ($1.2909) — 10 microseconds is smaller
+still (~0.02%). An honest finding, not a flattering assumption:
+microsecond-scale latency, on its own, costs very little for a single
+quote on a name like this. Latency arbitrage matters enormously in real
+HFT because this tiny cost repeats across enormous trade volume and much
+tighter-spread instruments (futures, FX) — not because any single
+microsecond-scale window moves an equity's price by much on its own.
+
+Run the real-data demo:
+
+```bash
+python scripts/demo_latency.py
 ```
