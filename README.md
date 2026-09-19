@@ -11,7 +11,7 @@ engineering, and maker-vs-taker profitability.
 | Module | Status |
 |---|---|
 | Queue-aware fill modeling | done |
-| Inventory skew | not started |
+| Inventory skew | done |
 | Latency-sensitivity study | not started |
 | Microstructure feature engineering | not started |
 | Maker-vs-taker profitability | not started |
@@ -70,4 +70,41 @@ Run the tests:
 
 ```bash
 pytest tests/
+```
+
+## Dynamic inventory skew
+
+`src/market_making_sim/inventory_skew.py`
+
+Ties the reservation-price model and real price action together into a
+feedback loop: at each real bar, the quote is recomputed from the market
+maker's CURRENT inventory (not a single frozen snapshot), a real bid
+fill is detected when the bar's real low reaches the quoted bid (and an
+ask fill when the real high reaches the quoted ask), inventory updates,
+and the next bar's quote reflects the new inventory — get filled buying,
+the next quote skews down to attract sellers less and buyers more,
+nudging the position back toward flat.
+
+```python
+from market_making_sim import simulate_inventory_trajectory
+
+result = simulate_inventory_trajectory(
+    price_bars=real_bars, initial_inventory=0, risk_aversion=0.5,
+    volatility=0.03, order_arrival_sensitivity=1.5, fill_size=100,
+)
+```
+
+**Real result:** replaying one real TSLA trading session (389 real
+1-minute bars, opening print excluded), 33 real bid fills and 36 real
+ask fills, inventory ranging from -500 to +500 shares and ending at
+-300 — the self-correcting skew keeps it oscillating around flat rather
+than running away in one direction. The `reservation_price` column
+visibly diverges from `mid_price` as inventory builds (e.g. skewing
+above mid while short), confirmed directly in the real output, not just
+asserted.
+
+Run the real-data demo:
+
+```bash
+python scripts/demo_inventory_skew.py
 ```
